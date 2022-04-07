@@ -1,0 +1,168 @@
+import socket                                                                           # import the socket library
+import threading                                                                        # import the threading library
+import time
+
+
+
+class User(object):                                                                     # object for storing user data
+    def __init__(self, username, addr, conn):                                           # constructor
+        self.username = username
+        self.addr = addr
+        self.conn = conn
+
+
+
+
+NUM_BYTES = 4096                                                                        # max number of bytes to receive
+PORT = 5050                                                                             # port the server is running on
+SERVER = ''                                                                             # getting the ipaddress of localhost
+ADDR = (SERVER, PORT)                                                                   # create a tuple containing the server address and port
+DISCONNECT_MESSAGE = "!quit"                                                            # message to check for disconnecting user
+
+list_of_users = []                                                                      # global variable list of users
+MAX_CLIENTS = 64                                                                        # global variable max clients
+
+
+
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)                                   # specify type of address we are looking for (IPV4)
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)                                 # override TIME-WAIT state after shutdown
+s.bind(ADDR)                                                                            # binding the socket to the address
+
+
+
+
+
+def hello_from(addr,conn,msg):
+
+        name = msg[11:len(msg)]                                                         # get name from message
+
+        for x in list_of_users:                                                         # check if name is in the user list already
+            if name == x.username:                                                      # if the above case is true
+                conn.send("[IN-USE]".encode('utf-8'))                                   # send to the user that the name is in use
+                break
+
+        list_of_users.append(User(name, addr, conn))                                    # add the user  to the list
+
+        response = "[HELLO] " + name                                                      # create response text
+        conn.send(response.encode('utf-8'))                                             # send response
+        return
+
+
+def who(conn):
+    response = "[WHO-OK]"                                                               # create response text
+    for x in list_of_users:                                                             # iterate through all the users
+        response = response + " " + x.username                                          # add users name to response text
+    conn.send(response.encode('utf-8'))                                                 # send response to curr user
+    return
+
+
+def send(conn, msg, curr_addr, state):
+    if state == True:                                                                   # IF TRUE MEANS THE "SEND" FORMAT STANDS
+        separate_list = msg.split(" ")                                                  # split the msg using whitespace
+        response = ""                                                                   # set response text
+
+        for x in list_of_users:                                                         # iterate through the list of users
+            if x.addr == curr_addr:                                                     # if the address of the current user and an address in the list match enter if
+                response = f"[DELIVERY] {x.username}"                                   # add the DELIVERY + username of user sending msg
+                break
+
+        for x in range(2, len(separate_list)):                                          # iterate through msg (for example "SEND somone blablabla kekekeke") -> starts iterating from the blablabla
+                response = response + " " + separate_list[x]                            # add each part of msg to response
+
+        for x in list_of_users:                                                         # iterate through list of users
+            if x.username == separate_list[1]:                                          # if the username of the person that the msg is being sent to corresponds one in the list enter if
+                x.conn.send(response.encode('utf-8'))                                   # send the response message to the recipient
+                conn.send("[SEND-OK]".encode('utf-8'))                                  # send "SEND-OK" on succesfull sending
+                break
+            if x.username not in separate_list[1]:                                      # if the username doesnt match anything in list
+                conn.send("[UNKNOWN]".encode('utf-8'))                                  # send "UNKNOWN" to the sender
+
+    else:                                                                               # IF FALSE MEANS THE "@user" FORMAT STANDS
+        separate_list = msg.split(" ")                                                  # split msg using whitespace
+        username_msg = separate_list[0][1:len(separate_list[0])]                        # extract substring from the first part of the speparate_list (for example "@user" - > "user")
+
+        for x in list_of_users:                                                         # iterate through the list of users
+            if x.addr == curr_addr:                                                     # if the address of the current user and an address in the list match enter if
+                response = f"[DELIVERY] {x.username}"                                   # add the DELIVERY + username of user sending msg
+                break
+
+        for x in range(1, len(separate_list)):                                          # iterate through msg (for example "@user blablabla kekekeke") -> starts iterating from the blablabla
+            response = response + " " + separate_list[x]                                # add each part of msg to response
+
+        for x in list_of_users:                                                         # iterate through list of users
+            if x.username == username_msg:                                              # if the username of the person that the msg is being sent to corresponds one in the list enter if
+                x.conn.send(response.encode('utf-8'))                                   # send the response message to the recipient
+                conn.send("[SEND-OK]".encode('utf-8'))                                  # send "SEND-OK" on succesfull sending
+                break
+            if x.username not in separate_list[1]:                                      # else if the username doesnt match
+                conn.send("[UNKNOWN]".encode('utf-8'))                                  # send "UNKNOWN" to the sender
+
+    return
+
+
+def clear_list(cur_addr):
+    for x in list_of_users:                                                             # iterate through the list of users
+        if x.addr == cur_addr:                                                          # if the address of the current user and an address in the list match enter if
+            list_of_users.remove(x)                                                     # remove the user
+
+    return
+
+
+def handle_client(addr, conn):                                                          # function for handling client requests
+    while True:                                                                         # loop until data is received
+        msg = conn.recv(NUM_BYTES).decode('utf-8')                                      # receive data from client and decode it
+        msg_substring_len = len(msg.split(" "))                                         # split with whitespace
+
+        if msg:                                                                         # if data is received start branching
+
+            if 'HELLO-FROM' in msg:                                                     # if the data has HELLO-FROM in it call the appropriate function
+                if msg_substring_len > 1 and msg_substring_len < 1:                     # if we have more then 2 substrings or less then 2 send bad req body
+                    conn.send("[BAD-RQST-BODY]".encode('utf-8'))
+                else:
+                    hello_from(addr, conn, msg)
+
+            elif 'WHO' in msg or '!who' in msg:                                         # if the data has HELLO-FROM in it call the appropriate function
+                who(conn)
+
+            elif 'SEND' in msg:                                                         # if the data has HELLO-FROM in it call the appropriate function
+                if msg_substring_len < 2:                                               # if we have less then 3 substrings send bad req body
+                    conn.send("[BAD-RQST-BODY\]".encode('utf-8'))
+                else:
+                    send(conn,msg,addr,True)
+
+            elif '@' in msg:                                                            # if the data has HELLO-FROM in it call the appropriate function
+                if msg_substring_len == 0:                                              # if we have less then 2 substrings send bad req body
+                    conn.send("[BAD-RQST-BODY]".encode('utf-8'))
+                else:
+                    send(conn,msg,addr,False)
+
+            elif msg == DISCONNECT_MESSAGE:                                             # if the message is a disconnect message close the connection and break the loop (remove user from list)
+                clear_list(addr)
+                conn.close()
+                break                                                                   # break the entire loop
+
+            else:
+                conn.send("[BAD-RQST-HDR]".encode('utf-8'))                             # if none of the ifs match its a bad header
+    return
+
+def start():                                                                            # function to start listening on the port
+    s.listen()
+    print(f"[LISTENING] SERVER LISTENING ON: {socket.gethostbyname(socket.gethostname())}, PORT: {PORT}")
+
+    while True:                                                                         # listen until a client connects
+        conn, addr = s.accept()                                                         # accept the connection
+                                                                                        # check if the max capacity is reached
+        while threading.active_count()-1 == MAX_CLIENTS:                                # loop until a spot on the server frees up
+            conn.send("[BUSY]".encode('utf-8'))                                         # send a BUSY msg if server is full
+            time.sleep(3)                                                               # weit for 3 seconds and continue looping
+
+
+        thread = threading.Thread(target=handle_client, args=(addr, conn))              # set the handle_client function (for the currently connected client) into a new thread
+        conn.send("[CONNECTED]".encode('utf-8'))                                      # send connected msg to client
+        thread.start()                                                                  # start the thread
+    return
+
+start()
+
+
