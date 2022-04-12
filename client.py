@@ -76,6 +76,8 @@ def recv_msg():
             else:
                 print(data+'\n')                                                # print server msg
 
+###########################################################################################################################################################################################
+
 sys.tracebacklimit = 0                                                  # supress traceback information
 
 PORT = 5050                                                             # set up port to connect to

@@ -13,24 +13,6 @@ class User(object):                                                             
 
 
 
-
-NUM_BYTES = 4096                                                                        # max number of bytes to receive
-PORT = 5050                                                                             # port the server is running on
-SERVER = ''                                                                             # getting the ipaddress of localhost
-ADDR = (SERVER, PORT)                                                                   # create a tuple containing the server address and port
-
-list_of_users = []                                                                      # global variable list of users
-MAX_CLIENTS = 64                                                                        # global variable max clients
-
-
-
-
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)                                   # specify type of address we are looking for (IPV4)
-s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)                                 # override TIME-WAIT state after shutdown
-s.bind(ADDR)                                                                            # binding the socket to the address
-
-
-
 def hello_from(addr,conn,msg):
 
         name = msg[11:len(msg)]                                                         # get name from message
@@ -158,7 +140,21 @@ def start():                                                                    
 
     return
 
+###########################################################################################################################################################################################
 
+NUM_BYTES = 4096                                                                        # max number of bytes to receive
+PORT = 5050                                                                             # port the server is running on
+SERVER = ''                                                                             # getting the ipaddress of localhost
+ADDR = (SERVER, PORT)                                                                   # create a tuple containing the server address and port
+
+list_of_users = []                                                                      # global variable list of users
+MAX_CLIENTS = 64                                                                        # global variable max clients
+
+
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)                                   # specify type of address we are looking for (IPV4)
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)                                 # override TIME-WAIT state after shutdown
+s.bind(ADDR)                                                                            # binding the socket to the address
 
 start()
 
