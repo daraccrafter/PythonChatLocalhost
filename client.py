@@ -2,7 +2,7 @@ import socket
 import sys
 import threading
 import time
-from queue import Queue
+
 
 
 def socket_connection():                                                #function used to restart the socket connection
@@ -85,8 +85,6 @@ SERVER = socket.gethostbyname(socket.gethostname())                     # get lo
 ADDR = (SERVER, PORT)                                                   # tuple of address and port
 NUM_BYTES = 4096                                                        # buffer size
 
-lock = threading.Lock()
-queue1 = Queue()
 
 global flag
 global sock

@@ -122,12 +122,12 @@ def handle_client(addr, conn):                                                  
 
 def start():                                                                            # function to start listening on the port
 
-    s.listen()
+    sock.listen()
     print(f"[LISTENING] SERVER LISTENING ON: {socket.gethostbyname(socket.gethostname())}, PORT: {PORT}")
 
     while True:                                                                         # listen until a client connects
 
-        conn, addr = s.accept()                                                         # accept the connection
+        conn, addr = sock.accept()                                                         # accept the connection
                                                                                         # check if the max capacity is reached
         while threading.active_count()-1 == MAX_CLIENTS:                                # loop until a spot on the server frees up
             conn.send("[BUSY]".encode('utf-8'))                                         # send a BUSY msg if server is full
@@ -152,9 +152,9 @@ MAX_CLIENTS = 64                                                                
 
 
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)                                   # specify type of address we are looking for (IPV4)
-s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)                                 # override TIME-WAIT state after shutdown
-s.bind(ADDR)                                                                            # binding the socket to the address
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)                                   # specify type of address we are looking for (IPV4)
+sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)                                 # override TIME-WAIT state after shutdown
+sock.bind(ADDR)                                                                            # binding the socket to the address
 
 start()
 
